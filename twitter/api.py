@@ -2970,6 +2970,8 @@ class Api(object):
 
         resp = self._RequestUrl(url, 'GET', data=parameters)
         data = self._ParseAndCheckTwitter(resp.content.decode('utf-8'))
+        
+        print data
 
         if return_json:
             return data
