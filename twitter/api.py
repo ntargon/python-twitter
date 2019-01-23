@@ -2909,74 +2909,48 @@ class Api(object):
             return User.NewFromJsonDict(data)
 
     def GetDirectMessages(self,
-                          since_id=None,
-                          max_id=None,
-                          count=None,
-                          include_entities=True,
-                          skip_status=False,
-                          full_text=False,
-                          page=None,
-                          return_json=False):
+                          count=20,
+                          cursor=None,
+                          return_next_cursor=False):
         """Returns a list of the direct messages sent to the authenticating user.
 
         Args:
-          since_id:
-            Returns results with an ID greater than (that is, more recent
-            than) the specified ID. There are limits to the number of
-            Tweets which can be accessed through the API. If the limit of
-            Tweets has occurred since the since_id, the since_id will be
-            forced to the oldest ID available. [Optional]
-          max_id:
-            Returns results with an ID less than (that is, older than) or
-            equal to the specified ID. [Optional]
           count:
-            Specifies the number of direct messages to try and retrieve, up to a
-            maximum of 200. The value of count is best thought of as a limit to the
-            number of Tweets to return because suspended or deleted content is
-            removed after the count has been applied. [Optional]
-          include_entities:
-            The entities node will be omitted when set to False.
-            [Optional]
-          skip_status:
-            When set to True statuses will not be included in the returned user
-            objects. [Optional]
-          full_text:
-            When set to True full message will be included in the returned message
-            object if message length is bigger than CHARACTER_LIMIT characters. [Optional]
-          page:
-            If you want more than 200 messages, you can use this and get 20 messages
-            each time. You must recall it and increment the page value until it
-            return nothing. You can't use count option with it. First value is 1 and
-            not 0.
-          return_json (bool, optional):
-            If True JSON data will be returned, instead of twitter.User
+            max = 50, default = 20
+          return_next_cursor:
+            
 
         Returns:
-          A sequence of twitter.DirectMessage instances
+          A sequence of twitter.DirectMessage instances and next_cursor(if return_next_cursor is True)
         """
         url = '%s/direct_messages/events/list.json' % self.base_url
         parameters = {
-            'full_text': bool(full_text),
-            'include_entities': bool(include_entities),
-            'max_id': max_id,
-            'since_id': since_id,
-            'skip_status': bool(skip_status),
+            'count': count,
         }
 
         if count:
-            parameters['count'] = enf_type('count', int, count)
-        if page:
-            parameters['page'] = enf_type('page', int, page)
+            parameters['cursor'] = cursor
 
         resp = self._RequestUrl(url, 'GET', data=parameters)
         data = self._ParseAndCheckTwitter(resp.content.decode('utf-8'))
         
         print(data)
 
-        if return_json:
-            return data
+        dms = [DirectMessage(
+                created_at=e['created_timestamp'],
+                id=e['id'],
+                recipient_id=e['message_create']['target']['recipient_id'],
+                sender_id=e['message_create']['sender_id'],
+                text=e['message_create']['message_data']['text'],
+            ) for e in data['events']]
+          
+        next_cursor = data['cursor']
+        
+        if return_next_cursor:
+            return dms, next_cursor
         else:
-            return [DirectMessage.NewFromJsonDict(x) for x in data]
+            return dms
+
 
     def GetSentDirectMessages(self,
                               since_id=None,
