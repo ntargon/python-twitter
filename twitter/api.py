@@ -2944,7 +2944,9 @@ class Api(object):
                 text=e['message_create']['message_data']['text'],
             ) for e in data['events']]
           
-        next_cursor = data['cursor']
+        
+        
+        next_cursor = data.get('cursor', None)
         
         if return_next_cursor:
             return dms, next_cursor
